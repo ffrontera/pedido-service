@@ -1,5 +1,6 @@
 package com.dosgenerales.pedido_service.config;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -13,6 +14,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableWebSecurity
 public class SecurityConfig {
 
+    @Autowired
     private JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Bean
@@ -23,7 +25,7 @@ public class SecurityConfig {
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(HttpMethod.GET, "/api/v1/pedidos/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/pedidos/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/pedidos/**").hasRole("USER")
                         .requestMatchers(HttpMethod.PUT, "/api/v1/pedidos/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/v1/pedidos/**").hasRole("ADMIN")
                         .anyRequest().authenticated()
