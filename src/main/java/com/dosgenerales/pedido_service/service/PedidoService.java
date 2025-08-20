@@ -1,9 +1,6 @@
 package com.dosgenerales.pedido_service.service;
 
-import com.dosgenerales.pedido_service.dto.CreatePedidoRequestDTO;
-import com.dosgenerales.pedido_service.dto.PedidoItemRequestDTO;
-import com.dosgenerales.pedido_service.dto.PedidoResponseDTO;
-import com.dosgenerales.pedido_service.dto.ProductoDTO;
+import com.dosgenerales.pedido_service.dto.*;
 import com.dosgenerales.pedido_service.model.EstadoPedido;
 import com.dosgenerales.pedido_service.model.Pedido;
 import com.dosgenerales.pedido_service.model.PedidoItem;
@@ -11,12 +8,14 @@ import com.dosgenerales.pedido_service.repository.PedidoRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -24,9 +23,13 @@ public class PedidoService {
 
     private final PedidoRepository pedidoRepository;
     private final RestTemplate restTemplate;
+    private final KafkaTemplate<String, PedidoPagadoEvent> kafkaTemplate;
 
     @Value("${catalogo.service.url}")
     private String catalogoServiceUrl;
+
+    @Value("${app.kafka.topic.pedidos-pagados}")
+    private String topicPedidosPagados;
 
     @Transactional
     public PedidoResponseDTO createPedido(CreatePedidoRequestDTO request, String userEmail) {
@@ -60,9 +63,11 @@ public class PedidoService {
 
         //Pago simulado
         //TODO: generar un enlace de pago
-        simularPagoExitoso(pedido);
+//        simularPagoExitoso(pedido);
 
         Pedido savedPedido = pedidoRepository.save(pedido);
+
+        marcarPedidoComoPagado(savedPedido.getId());
 
         return new PedidoResponseDTO()
                 .builder()
@@ -73,6 +78,23 @@ public class PedidoService {
                 .precioTotal(precioTotal)
                 .estado(pedido.getEstado())
                 .build();
+    }
+
+    private void marcarPedidoComoPagado(Long pedidoId) {
+        Pedido pedido = pedidoRepository.findById(pedidoId).orElseThrow(/*...*/);
+        pedido.setEstado(EstadoPedido.PAGADO);
+        pedidoRepository.save(pedido);
+
+        // ¡AQUÍ ESTÁ LA MAGIA!
+        // Creamos el evento con los datos de los productos vendidos
+        List<ProductoVendidoDTO> productosVendidos = pedido.getItems().stream()
+                .map(item -> new ProductoVendidoDTO(item.getProductoId(), item.getCantidad()))
+                .collect(Collectors.toList());
+
+        PedidoPagadoEvent event = new PedidoPagadoEvent(pedido.getId(), productosVendidos);
+
+        // Enviamos el evento al topic de Kafka
+        kafkaTemplate.send(topicPedidosPagados, event);
     }
 
     private void simularPagoExitoso(Pedido pedido) {
