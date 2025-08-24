@@ -63,10 +63,10 @@ public class PedidoService {
 
         //Pago simulado
         //TODO: generar un enlace de pago
-//        simularPagoExitoso(pedido);
+        //simularPagoExitoso(pedido);
 
         Pedido savedPedido = pedidoRepository.save(pedido);
-
+        //Simulacion
         marcarPedidoComoPagado(savedPedido.getId());
 
         return new PedidoResponseDTO()
@@ -74,7 +74,9 @@ public class PedidoService {
                 .id(pedido.getId())
                 .userEmail(pedido.getUserEmail())
                 .fechaCreacion(pedido.getFechaCreacion())
-                .items(pedido.getItems())
+                .items(pedido.getItems().stream()
+                        .map(item -> new PedidoItemDTO(item))
+                        .collect(Collectors.toList()))
                 .precioTotal(precioTotal)
                 .estado(pedido.getEstado())
                 .build();
@@ -111,7 +113,9 @@ public class PedidoService {
                     .fechaCreacion(pedido.getFechaCreacion())
                     .precioTotal(pedido.getPrecioTotal())
                     .estado(pedido.getEstado())
-                    .items(pedido.getItems())
+                    .items(pedido.getItems().stream()
+                            .map(item -> new PedidoItemDTO(item))
+                            .collect(Collectors.toList()))
                     .build());
         }
         return pedidosDTO;

@@ -20,5 +20,5 @@ public class PedidoResponseDTO {
     private LocalDateTime fechaCreacion;
     private Double precioTotal;
     private EstadoPedido estado;
-    private List<PedidoItem> items;
+    private List<PedidoItemDTO> items;
 }
