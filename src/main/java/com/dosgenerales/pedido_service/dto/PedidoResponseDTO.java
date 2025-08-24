@@ -1,7 +1,6 @@
 package com.dosgenerales.pedido_service.dto;
 
 import com.dosgenerales.pedido_service.model.EstadoPedido;
-import com.dosgenerales.pedido_service.model.PedidoItem;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
